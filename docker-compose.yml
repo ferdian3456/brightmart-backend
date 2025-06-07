@@ -1,0 +1,19 @@
+services:
+  postgresql:
+    image: postgres:latest
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=brightmart
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+#    healthcheck:
+#      test: [ "CMD", "pg_isready", "-U", "ferdian" ]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 5
+
+volumes:
+  postgres_data:

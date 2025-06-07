@@ -1,2 +1,5 @@
 # Ignore goland
 .idea/
+
+# Ignore .env
+.env

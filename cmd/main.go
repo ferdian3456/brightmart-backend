@@ -1,4 +1,4 @@
-package brightmart_backend
+package cmd
 
 import "fmt"
 
