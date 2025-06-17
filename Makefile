@@ -7,8 +7,8 @@ migrate-create:
 
 .PHONY: migrate-up
 migrate-up:
-	@ migrate -database ${POSTGRES_URL} -path db/migrations
+	@ migrate -database ${POSTGRES_URL} -path db/migrations up
 
 .PHONY: migrate-down
 migrate-down:
-	@ migrate -database ${POSTGRES_URL} -path db/migrations
+	@ migrate -database ${POSTGRES_URL} -path db/migrations down

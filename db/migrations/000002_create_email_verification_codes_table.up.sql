@@ -1,7 +1,8 @@
 CREATE TABLE email_verification_codes (
-   id SERIAL PRIMARY KEY,
-   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-   code_hash TEXT NOT NULL,
-   expires_at TIMESTAMP NOT NULL,
-   created_at TIMESTAMP DEFAULT NOW()
+   id serial PRIMARY KEY,
+   user_id char(36) NOT NULL,
+   code_hash text NOT NULL,
+   expires_at timestamp NOT NULL,
+   created_at timestamp  NOT NULL,
+   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
