@@ -40,12 +40,12 @@ func main() {
 	oAUth2 := config.NewOAuth2(koanf)
 
 	config.Server(&config.ServerConfig{
-		Router:       httprouter,
-		DB:           postgresql,
-		DBCache:      rds,
-		Log:          zap,
-		OAuth2Config: oAUth2,
-		Config:       koanf,
+		Router:  httprouter,
+		DB:      postgresql,
+		DBCache: rds,
+		Log:     zap,
+		OAuth2:  oAUth2,
+		Config:  koanf,
 	})
 
 	httprouter.PanicHandler = exception.ErrorHandler

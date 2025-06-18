@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS users(
     id char(36) PRIMARY KEY,
-    username varchar(22) UNIQUE NOT NULL,
+    username varchar(40) UNIQUE NOT NULL,
     email varchar(80) UNIQUE NOT NULL,
     phone_number varchar(15) UNIQUE,
+    profile_picture varchar(255),
     auth_provider text NOT NULL DEFAULT 'local',
     provider_user_id text,
     is_verified boolean DEFAULT FALSE,

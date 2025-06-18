@@ -15,12 +15,12 @@ import (
 )
 
 type ServerConfig struct {
-	Router       *httprouter.Router
-	DB           *pgxpool.Pool
-	DBCache      *redis.ClusterClient
-	Log          *zap.Logger
-	OAuth2Config *oauth2.Config
-	Config       *koanf.Koanf
+	Router  *httprouter.Router
+	DB      *pgxpool.Pool
+	DBCache *redis.ClusterClient
+	Log     *zap.Logger
+	OAuth2  *oauth2.Config
+	Config  *koanf.Koanf
 }
 
 func Server(config *ServerConfig) {
@@ -28,8 +28,8 @@ func Server(config *ServerConfig) {
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepository, config.DB, config.Log, config.Config)
 
 	userRepository := repository.NewUserRepository(config.Log, config.DB, config.DBCache)
-	userUsecase := usecase.NewUserUsecase(notificationUsecase, userRepository, config.DB, config.Log, config.Config)
-	userController := http.NewUserController(userUsecase, config.Log, config.Config)
+	userUsecase := usecase.NewUserUsecase(notificationUsecase, userRepository, config.DB, config.OAuth2, config.Log, config.Config)
+	userController := http.NewUserController(userUsecase, config.OAuth2, config.Log, config.Config)
 
 	authMiddleware := middleware.NewAuthMiddleware(config.Router, config.Log, config.Config, userUsecase)
 

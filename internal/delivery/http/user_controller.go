@@ -13,14 +13,16 @@ import (
 
 type UserController struct {
 	UserUsecase  *usecase.UserUsecase
+	OAuth2       *oauth2.Config
 	Log          *zap.Logger
 	Oauth2Config *oauth2.Config
 	Config       *koanf.Koanf
 }
 
-func NewUserController(userUsecase *usecase.UserUsecase, zap *zap.Logger, koanf *koanf.Koanf) *UserController {
+func NewUserController(userUsecase *usecase.UserUsecase, oauth2 *oauth2.Config, zap *zap.Logger, koanf *koanf.Koanf) *UserController {
 	return &UserController{
 		UserUsecase: userUsecase,
+		OAuth2:      oauth2,
 		Log:         zap,
 		Config:      koanf,
 	}
@@ -99,21 +101,25 @@ func (controller UserController) MobileLogin(writer http.ResponseWriter, request
 	helper.WriteSuccessResponse(writer, response)
 }
 
-//func (controller UserController) OAuth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-//	state := helper.GenerateState()
-//	url := controller.Oauth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
-//
-//	http.Redirect(writer, request, url, http.StatusTemporaryRedirect)
-//}
-//
-//func (controller UserController) OAuthCallback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-//	url := request.URL.Query()
-//
-//	code := request.URL.Query().Get("code")
-//	state := request.URL.Query().Get("state")
-//
-//	if state == "" || code == "" {
-//
-//	}
-//
-//}
+func (controller UserController) OAuth(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	url := controller.UserUsecase.OAuth(ctx)
+	http.Redirect(writer, request, url, http.StatusTemporaryRedirect)
+}
+
+func (controller UserController) OAuthCallback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	
+	errorMap := map[string]string{}
+
+	code := request.URL.Query().Get("code")
+	state := request.URL.Query().Get("state")
+
+	response, err := controller.UserUsecase.OAuthCallback(ctx, code, state, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, errorMap)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
+}

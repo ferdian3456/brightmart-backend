@@ -5,18 +5,59 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"log"
+	"errors"
 	"math/big"
+	"strings"
 )
 
-func GenerateState() string {
-	b := make([]byte, 32)  // create a 32-byte slice
-	_, err := rand.Read(b) // read b variable and fill it with secure random bytes
-	if err != nil {
-		log.Fatalf("Failed to generate state: %v", err)
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func GenerateState() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
 	}
 
-	return base64.URLEncoding.EncodeToString(b)
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+func GenerateUsername(baseName string) (string, error) {
+	clean := strings.ReplaceAll(baseName, " ", "")
+	if len(clean) == 0 {
+		return "", errors.New("base name cannot be empty")
+	}
+
+	name := strings.ToLower(clean) // normalize
+	var prefix string
+
+	if len(name) < 5 {
+		prefix = name
+	} else {
+		prefix = name[:5] // take first 5 characters
+	}
+
+	// Ensure total length does not exceed 44
+	maxSuffixLen := 40 - len(prefix)
+	suffix, err := generateRandomAlphanumeric(maxSuffixLen)
+	if err != nil {
+		return "", err
+	}
+
+	return prefix + suffix, nil
+}
+
+func generateRandomAlphanumeric(length int) (string, error) {
+	result := make([]byte, length)
+
+	for i := range result {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		result[i] = charset[num.Int64()]
+	}
+
+	return string(result), nil
 }
 
 func GenerateSHA256Hash(value string) string {
@@ -42,4 +83,18 @@ func GenerateVerificationCode(length int) (string, error) {
 	}
 
 	return string(code), nil
+}
+
+func GenerateRandomPasswordChar20() (string, error) {
+	result := make([]byte, 20)
+	charsetLen := big.NewInt(int64(len(charset)))
+
+	for i := range result {
+		num, err := rand.Int(rand.Reader, charsetLen)
+		if err != nil {
+			return "", err
+		}
+		result[i] = charset[num.Int64()]
+	}
+	return string(result), nil
 }

@@ -33,11 +33,50 @@ func (repository *UserRepository) Register(ctx context.Context, tx pgx.Tx, user 
 	}
 }
 
+func (repository *UserRepository) RegisterViaOAuth(ctx context.Context, tx pgx.Tx, user model.User) {
+	query := "INSERT INTO users (id,username,email,profile_picture,auth_provider,provider_user_id,is_verified,password,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"
+	_, err := tx.Exec(ctx, query, user.Id, user.Username, user.Email, user.Profile_picture, user.Auth_provider, user.Provider_user_id, user.Is_verified, user.Password, user.Created_at, user.Updated_at)
+	if err != nil {
+		repository.Log.Panic("failed to query into database", zap.Error(err))
+	}
+}
+
 func (repository *UserRepository) SaveUserInCache(ctx context.Context, email string, hashedCode string) {
 	key := "verify:" + email
 	err := repository.DBCache.Set(ctx, key, hashedCode, 10*time.Minute).Err()
 	if err != nil {
 		repository.Log.Panic("failed to set into cache database", zap.Error(err))
+	}
+}
+
+func (repository *UserRepository) SaveUserStateInCache(ctx context.Context, state string) {
+	key := "oauth:state:" + state
+	err := repository.DBCache.Set(ctx, key, state, 10*time.Minute).Err()
+	if err != nil {
+		repository.Log.Panic("failed to set into cache database", zap.Error(err))
+	}
+}
+
+func (repository *UserRepository) CheckUserStateExistenceInCache(ctx context.Context, state string) error {
+	key := "oauth:state:" + state
+
+	_, err := repository.DBCache.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return errors.New("state does not exist or has expired")
+	} else if err != nil {
+		repository.Log.Panic("failed to get from cache database", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (repository *UserRepository) DeleteUserStateInCache(ctx context.Context, state string) {
+	key := "oauth:state:" + state
+
+	err := repository.DBCache.Del(ctx, key).Err()
+	if err != nil {
+		repository.Log.Error("failed to delete used state from cache", zap.Error(err))
 	}
 }
 
@@ -65,6 +104,18 @@ func (repository *UserRepository) UpdateUserStatus(ctx context.Context, tx pgx.T
 	}
 }
 
+func (repository *UserRepository) UpdateProviderUserID(ctx context.Context, tx pgx.Tx, id string, email string, updated_at time.Time) {
+	query := `
+		UPDATE users 
+		SET provider_user_id = $2, updated_at = $3 
+		WHERE email = $1
+	`
+	_, err := tx.Exec(ctx, query, email, id, updated_at)
+	if err != nil {
+		repository.Log.Panic("failed to query into database", zap.Error(err))
+	}
+}
+
 func (repository *UserRepository) DeleteUserCodeInCache(ctx context.Context, email string) {
 	key := "verify:" + email
 	err := repository.DBCache.Del(ctx, key).Err()
@@ -78,7 +129,6 @@ func (repository *UserRepository) CheckUsernameUnique(ctx context.Context, tx pg
 
 	var existingUsername string
 	err := tx.QueryRow(ctx, query, username).Scan(&existingUsername)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -106,6 +156,23 @@ func (repository *UserRepository) CheckEmailUnique(ctx context.Context, tx pgx.T
 }
 
 func (repository *UserRepository) FindUserIdByEmail(ctx context.Context, tx pgx.Tx, email string) (string, error) {
+	query := "SELECT id FROM users WHERE email=$1 AND is_verified=true LIMIT 1"
+
+	var id string
+	err := tx.QueryRow(ctx, query, email).Scan(&id)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", errors.New("user not found")
+		}
+
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return id, nil
+}
+
+func (repository *UserRepository) FindNotVerifiedUserIdByEmail(ctx context.Context, tx pgx.Tx, email string) (string, error) {
 	query := "SELECT id FROM users WHERE email=$1 AND is_verified=false LIMIT 1"
 
 	var id string
@@ -175,6 +242,22 @@ func (repository *UserRepository) Login(ctx context.Context, tx pgx.Tx, email st
 
 	var user model.User
 	err := tx.QueryRow(ctx, query, email).Scan(&user.Id, &user.Email, &user.Password)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user, errors.New("user not found")
+		}
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return user, nil
+}
+
+func (repository *UserRepository) FindByProviderUserID(ctx context.Context, tx pgx.Tx, id string) (model.User, error) {
+	query := "SELECT id,email FROM users WHERE provider_user_id=$1"
+
+	user := model.User{}
+	err := repository.DB.QueryRow(ctx, query, id).Scan(&user.Id, &user.Email)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
