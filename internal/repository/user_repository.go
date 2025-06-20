@@ -225,7 +225,7 @@ func (repository *UserRepository) FindLatestRefreshToken(ctx context.Context, tx
 	query := "SELECT hashed_refresh_token FROM refresh_tokens ORDER BY created_at DESC LIMIT 1"
 
 	var hashedRefreshToken string
-	err := tx.QueryRow(ctx, query).Scan(hashedRefreshToken)
+	err := tx.QueryRow(ctx, query).Scan(&hashedRefreshToken)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -278,6 +278,22 @@ func (repository *UserRepository) CheckUserExistence(ctx context.Context, userUU
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errors.New("user already exist")
+		}
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return nil
+}
+
+func (repository *UserRepository) CheckUserExistenceWithTx(ctx context.Context, tx pgx.Tx, userUUID string) error {
+	query := "SELECT username FROM users WHERE id=$1"
+
+	var username string
+	err := tx.QueryRow(ctx, query, userUUID).Scan(&username)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errors.New("user not found")
 		}
 		repository.Log.Panic("failed to query database", zap.Error(err))
 	}

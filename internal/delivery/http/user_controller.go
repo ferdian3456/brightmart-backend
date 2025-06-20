@@ -109,7 +109,7 @@ func (controller UserController) OAuth(writer http.ResponseWriter, request *http
 
 func (controller UserController) OAuthCallback(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	ctx := request.Context()
-	
+
 	errorMap := map[string]string{}
 
 	code := request.URL.Query().Get("code")
@@ -119,6 +119,64 @@ func (controller UserController) OAuthCallback(writer http.ResponseWriter, reque
 	if err != nil {
 		helper.WriteErrorResponse(writer, http.StatusBadRequest, errorMap)
 		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
+}
+
+func (controller UserController) RefreshRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+
+	errorMap := map[string]string{}
+
+	payload := model.RenewalTokenRequest{}
+	helper.ReadFromRequestBody(request, &payload)
+
+	response, err := controller.UserUsecase.RefreshTokenRenewal(ctx, payload, errorMap)
+	if err != nil {
+		if err["user"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+			return
+		}
+
+		if err["refresh_token"] == "refresh token reuse detected. for security reasons, you have been logged out. please sign in again." {
+			helper.WriteErrorResponse(writer, http.StatusForbidden, err)
+			return
+		}
+
+		if err["refresh_token"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	helper.WriteSuccessResponse(writer, response)
+}
+
+func (controller UserController) AccessRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+
+	errorMap := map[string]string{}
+
+	payload := model.RenewalTokenRequest{}
+	helper.ReadFromRequestBody(request, &payload)
+
+	response, err := controller.UserUsecase.AccessTokenRenewal(ctx, payload, errorMap)
+	if err != nil {
+		if err["user"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+			return
+		}
+
+		if err["refresh_token"] == "refresh token reuse detected. for security reasons, you have been logged out. please sign in again." {
+			helper.WriteErrorResponse(writer, http.StatusForbidden, err)
+			return
+		}
+
+		if err["refresh_token"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+			return
+		}
 	}
 
 	helper.WriteSuccessResponse(writer, response)

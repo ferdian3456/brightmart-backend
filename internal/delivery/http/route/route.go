@@ -21,6 +21,8 @@ func (c *RouteConfig) SetupRoute() {
 	c.Router.POST("/api/mobile/register", c.UserController.MobileRegister)
 	c.Router.POST("/api/mobile/login", c.UserController.MobileLogin)
 	c.Router.POST("/api/mobile/verify", c.UserController.MobileUserVerification)
+	c.Router.POST("/api/mobile/refresh", c.UserController.RefreshRenewal)
+	c.Router.POST("/api/mobile/access", c.UserController.AccessRenewal)
 	c.Router.POST("/api/mobile/resendcode", c.UserController.MobileUserResendCode)
 	c.Router.GET("/api/mobile/google/oauth", c.UserController.OAuth)
 	c.Router.GET("/api/mobile/google/callback", c.UserController.OAuthCallback)
