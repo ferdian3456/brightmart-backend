@@ -31,12 +31,17 @@ func Server(config *ServerConfig) {
 	userUsecase := usecase.NewUserUsecase(notificationUsecase, userRepository, config.DB, config.OAuth2, config.Log, config.Config)
 	userController := http.NewUserController(userUsecase, config.OAuth2, config.Log, config.Config)
 
-	authMiddleware := middleware.NewAuthMiddleware(config.Router, config.Log, config.Config, userUsecase)
+	adminRepository := repository.NewAdminRepository(config.Log, config.DB, config.DBCache)
+	adminUsecase := usecase.NewAdminUsecase(adminRepository, config.DB, config.OAuth2, config.Log, config.Config)
+	adminController := http.NewAdminController(adminUsecase, config.OAuth2, config.Log, config.Config)
+
+	authMiddleware := middleware.NewAuthMiddleware(config.Router, config.Log, config.Config, userUsecase, adminUsecase)
 
 	routeConfig := route.RouteConfig{
-		Router:         config.Router,
-		UserController: userController,
-		AuthMiddleware: authMiddleware,
+		Router:          config.Router,
+		UserController:  userController,
+		AdminController: adminController,
+		AuthMiddleware:  authMiddleware,
 	}
 
 	routeConfig.SetupRoute()

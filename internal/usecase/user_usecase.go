@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -167,7 +166,7 @@ func (usecase *UserUsecase) VerifyUser(ctx context.Context, payload model.UserVe
 
 	id, err := usecase.UserRepository.FindNotVerifiedUserIdByEmail(ctx, tx, payload.Email)
 	if err != nil {
-		errorMap["user"] = err.Error()
+		errorMap["email"] = err.Error()
 		return model.TokenResponse{}, errorMap
 	}
 
@@ -216,7 +215,7 @@ func (usecase *UserUsecase) ResendCode(ctx context.Context, payload model.UserRe
 
 	username, err := usecase.UserRepository.FindUsenamedByEmail(ctx, tx, payload.Email)
 	if err != nil {
-		errorMap["user"] = err.Error()
+		errorMap["email"] = err.Error()
 		return errorMap
 	}
 
@@ -276,7 +275,7 @@ func (usecase *UserUsecase) Login(ctx context.Context, payload model.UserLoginRe
 
 	user, err := usecase.UserRepository.Login(ctx, tx, payload.Email)
 	if err != nil {
-		errorMap["user"] = err.Error()
+		errorMap["email"] = err.Error()
 		return model.TokenResponse{}, errorMap
 	}
 
@@ -331,17 +330,20 @@ func (usecase *UserUsecase) OAuthCallback(ctx context.Context, code string, stat
 		usecase.Log.Panic("failed to unmarshal json response", zap.Error(err))
 	}
 
-	// Step 1: Find user by provider_user_id (Google sub)
-	var id string
-	_, err = usecase.UserRepository.FindByProviderUserID(ctx, tx, googleUser.ID)
-	if err != nil {
-		// User found via register then oauth → generate tokens
-		id, err = usecase.UserRepository.FindUserIdByEmail(ctx, tx, googleUser.Email)
-		if err == nil {
-			usecase.UserRepository.UpdateProviderUserID(ctx, tx, googleUser.ID, googleUser.Email, time.Now())
-			tokenResponse := usecase.generateTokens(ctx, tx, id)
-			return tokenResponse, nil
-		}
+	user, err := usecase.UserRepository.FindByProviderUserID(ctx, tx, googleUser.ID)
+	if err == nil {
+		// User exists with linked provider ID → generate tokens
+		tokenResponse := usecase.generateTokens(ctx, tx, user.Id)
+		return tokenResponse, nil
+	}
+
+	// Step 2: If not found by provider ID, try by email
+	id, err := usecase.UserRepository.FindUserIdByEmail(ctx, tx, googleUser.Email)
+	if err == nil {
+		// User exists → update provider ID & return tokens
+		usecase.UserRepository.UpdateProviderUserID(ctx, tx, googleUser.ID, googleUser.Email, time.Now())
+		tokenResponse := usecase.generateTokens(ctx, tx, id)
+		return tokenResponse, nil
 	}
 
 	// Step 3: New user registration
@@ -362,8 +364,6 @@ func (usecase *UserUsecase) OAuthCallback(ctx context.Context, code string, stat
 	if err != nil {
 		usecase.Log.Panic("failed to generate random password 20 char", zap.Error(err))
 	}
-
-	fmt.Println("password", password)
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

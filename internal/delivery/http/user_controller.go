@@ -4,6 +4,7 @@ import (
 	"brightmart-backend/internal/helper"
 	"brightmart-backend/internal/model"
 	"brightmart-backend/internal/usecase"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"
@@ -97,7 +98,6 @@ func (controller UserController) MobileLogin(writer http.ResponseWriter, request
 		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
 		return
 	}
-
 	helper.WriteSuccessResponse(writer, response)
 }
 
@@ -121,7 +121,27 @@ func (controller UserController) OAuthCallback(writer http.ResponseWriter, reque
 		return
 	}
 
-	helper.WriteSuccessResponse(writer, response)
+	html := fmt.Sprintf(`
+			<html>
+			  <body>
+				<script>
+				  window.opener.postMessage(
+					{
+					  type: "google-auth",
+					  access_token: "%s",
+					  refresh_token: "%s"
+					},
+					"%s"
+				  );
+				  window.close();
+				</script>
+			  </body>
+			</html>
+			`, response.Access_token, response.Refresh_token, controller.Config.String("FRONTEND_URL"))
+
+	//helper.WriteSuccessResponse(writer, response)
+
+	helper.WriteOAuthHTMLResponse(writer, html)
 }
 
 func (controller UserController) RefreshRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -180,4 +200,12 @@ func (controller UserController) AccessRenewal(writer http.ResponseWriter, reque
 	}
 
 	helper.WriteSuccessResponse(writer, response)
+}
+
+func (controller UserController) WebRegister(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+
+}
+
+func (controller UserController) WebLogin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+
 }

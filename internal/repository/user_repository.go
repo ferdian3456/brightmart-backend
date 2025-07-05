@@ -96,7 +96,7 @@ func (repository *UserRepository) UpdateUserStatus(ctx context.Context, tx pgx.T
 	query := `
 		UPDATE users 
 		SET is_verified = $2, updated_at = $3 
-		WHERE email = $1
+		WHERE email = $1 AND provider_user_id IS NULL
 	`
 	_, err := tx.Exec(ctx, query, email, status, updated_at)
 	if err != nil {
