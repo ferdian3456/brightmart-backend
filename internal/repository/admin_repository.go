@@ -88,6 +88,22 @@ func (repository *AdminRepository) CheckAdminExistence(ctx context.Context, user
 	return nil
 }
 
+func (repository *AdminRepository) CheckBothAdminExistence(ctx context.Context, tx pgx.Tx, userUUID string) error {
+	query := "SELECT username FROM admins WHERE id=$1 AND (role='admin' OR role='superadmin') AND is_active=true"
+
+	var username string
+	err := tx.QueryRow(ctx, query, userUUID).Scan(&username)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errors.New("admin already exist")
+		}
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return nil
+}
+
 func (repository *AdminRepository) CheckSuperAdminExistence(ctx context.Context, userUUID string) error {
 	query := "SELECT username FROM admins WHERE id=$1 AND role='superadmin' AND is_active=true"
 

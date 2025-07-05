@@ -66,8 +66,66 @@ func (controller AdminController) WebLoginAdmin(writer http.ResponseWriter, requ
 		SameSite: http.SameSiteLaxMode,
 		Expires:  response.Refresh_token_expires_in,
 	})
-	
+
 	helper.WriteSuccessResponseNoData(writer)
+}
+
+func (controller AdminController) RefreshRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+
+	errorMap := map[string]string{}
+
+	payload := model.RenewalTokenRequest{}
+	helper.ReadFromRequestBody(request, &payload)
+
+	response, err := controller.AdminUsecase.RefreshTokenRenewal(ctx, payload, errorMap)
+	if err != nil {
+		if err["admin"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+			return
+		}
+
+		if err["refresh_token"] == "refresh token reuse detected. for security reasons, you have been logged out. please sign in again." {
+			helper.WriteErrorResponse(writer, http.StatusForbidden, err)
+			return
+		}
+
+		if err["refresh_token"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	helper.WriteSuccessResponse(writer, response)
+}
+
+func (controller AdminController) AccessRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+
+	errorMap := map[string]string{}
+
+	payload := model.RenewalTokenRequest{}
+	helper.ReadFromRequestBody(request, &payload)
+
+	response, err := controller.AdminUsecase.AccessTokenRenewal(ctx, payload, errorMap)
+	if err != nil {
+		if err["admin"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+			return
+		}
+
+		if err["refresh_token"] == "refresh token reuse detected. for security reasons, you have been logged out. please sign in again." {
+			helper.WriteErrorResponse(writer, http.StatusForbidden, err)
+			return
+		}
+
+		if err["refresh_token"] != "" {
+			helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebCreateAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

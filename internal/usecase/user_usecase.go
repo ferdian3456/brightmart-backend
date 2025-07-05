@@ -395,10 +395,11 @@ func (usecase *UserUsecase) generateTokens(ctx context.Context, tx pgx.Tx, userI
 	secretKeyAccessByte := []byte(secretKeyAccess)
 
 	now := time.Now()
+	accessTokenDuration := now.Add(5 * time.Minute)
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  userId,
-		"exp": now.Add(5 * time.Minute).Unix(),
+		"exp": accessTokenDuration.Unix(),
 	})
 
 	accessTokenString, err := accessToken.SignedString(secretKeyAccessByte)
@@ -409,10 +410,10 @@ func (usecase *UserUsecase) generateTokens(ctx context.Context, tx pgx.Tx, userI
 	secretKeyRefresh := usecase.Config.String("SECRET_KEY_REFRESH_TOKEN")
 	secretKeyRefreshByte := []byte(secretKeyRefresh)
 
-	addedTime := now.Add(30 * 24 * time.Hour)
+	refreshTokenDuration := now.Add(30 * 24 * time.Hour)
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  userId,
-		"exp": addedTime.Unix(),
+		"exp": refreshTokenDuration.Unix(),
 	})
 
 	refreshTokenString, err := refreshToken.SignedString(secretKeyRefreshByte)
@@ -426,7 +427,7 @@ func (usecase *UserUsecase) generateTokens(ctx context.Context, tx pgx.Tx, userI
 		User_id:              userId,
 		Hashed_refresh_token: hashedRefreshToken,
 		Created_at:           now,
-		Expired_at:           addedTime,
+		Expired_at:           refreshTokenDuration,
 	}
 
 	usecase.UserRepository.UpdateRefreshTokenWithTx(ctx, tx, "Revoke", userId)
@@ -434,9 +435,9 @@ func (usecase *UserUsecase) generateTokens(ctx context.Context, tx pgx.Tx, userI
 
 	tokenResponse := model.TokenResponse{
 		Access_token:             accessTokenString,
-		Access_token_expires_in:  int((5 * time.Minute).Seconds()),
+		Access_token_expires_in:  accessTokenDuration.Second(),
 		Refresh_token:            refreshTokenString,
-		Refresh_token_expires_in: int((30 * 24 * time.Hour).Seconds()),
+		Refresh_token_expires_in: refreshTokenDuration.Second(),
 		Token_type:               "bearer",
 	}
 
