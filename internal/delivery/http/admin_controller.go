@@ -4,6 +4,7 @@ import (
 	"brightmart-backend/internal/helper"
 	"brightmart-backend/internal/model"
 	"brightmart-backend/internal/usecase"
+	"context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"
@@ -96,7 +97,27 @@ func (controller AdminController) RefreshRenewal(writer http.ResponseWriter, req
 		}
 	}
 
-	helper.WriteSuccessResponse(writer, response)
+	http.SetCookie(writer, &http.Cookie{
+		Name:     "access_token",
+		Value:    response.Access_token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  response.Access_token_expires_in,
+	})
+
+	http.SetCookie(writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    response.Refresh_token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  response.Refresh_token_expires_in,
+	})
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) AccessRenewal(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -125,31 +146,115 @@ func (controller AdminController) AccessRenewal(writer http.ResponseWriter, requ
 		}
 	}
 
-	helper.WriteSuccessResponse(writer, response)
+	http.SetCookie(writer, &http.Cookie{
+		Name:     "access_token",
+		Value:    response.Access_token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  response.Access_token_expires_in,
+	})
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebCreateAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	superadminUUID, _ := ctx.Value("superadmin_uuid").(string)
+
+	payload := model.AdminCreateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.CreateAdmin(ctx, superadminUUID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, errorMap)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebGetAllBanner(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	response, err := controller.AdminUsecase.GetAllBanner(ctx, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebGetBannerByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	bannerID := params.ByName("bannerID")
+	errorMap := map[string]string{}
 
+	response, err := controller.AdminUsecase.GetBannerById(ctx, bannerID, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebCreateBanner(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	payload := model.BannerCreateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.CreateBanner(ctx, adminUUID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, errorMap)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebUpdateBannerByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+	bannerID := params.ByName("bannerID")
+
+	payload := model.BannerUpdateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.UpdateBannerByID(ctx, adminUUID, bannerID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebDeleteBannerByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+	bannerID := params.ByName("bannerID")
+
+	err := controller.AdminUsecase.DeleteBannerByID(ctx, adminUUID, bannerID, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebGetAllCategory(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {

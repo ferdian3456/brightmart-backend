@@ -214,16 +214,17 @@ func (usecase *AdminUsecase) CheckSuperAdminExistance(ctx context.Context, userU
 	return nil
 }
 
-func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload model.RenewalTokenRequest, errorMap map[string]string) (model.TokenResponse, map[string]string) {
+func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload model.RenewalTokenRequest, errorMap map[string]string) (model.Token, map[string]string) {
 	var err error
 	var respErr error
+	tokenResponse := model.Token{}
 
 	if payload.Refresh_token == "" {
 		errorMap["refresh_token"] = "refresh_token is required to not be empty"
-		return model.TokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	} else if len(payload.Refresh_token) != 164 {
 		errorMap["refresh_token"] = "refresh_token must be 164 characters"
-		return model.TokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	tx, err := usecase.DB.Begin(ctx)
@@ -248,17 +249,17 @@ func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload mo
 			err = errors.New("token is malformed")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.TokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		} else if err.Error() == "token has invalid claims: token is expired" {
 			err = errors.New("token is expired")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.TokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		} else {
 			err = errors.New("token is invalid")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.TokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		}
 	}
 
@@ -272,7 +273,7 @@ func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload mo
 			err = errors.New("token is invalid")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.TokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		}
 	}
 
@@ -280,7 +281,7 @@ func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload mo
 	if err != nil {
 		usecase.Log.Warn(err.Error())
 		errorMap["user"] = err.Error()
-		return model.TokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	hashedRequestRefreshTokenHex := helper.GenerateSHA256Hash(payload.Refresh_token)
@@ -289,7 +290,7 @@ func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload mo
 	if err != nil {
 		usecase.Log.Warn(err.Error())
 		errorMap["refresh_token"] = err.Error()
-		return model.TokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	if hashedRequestRefreshTokenHex != hashedDBRefreshTokenHex {
@@ -297,24 +298,25 @@ func (usecase *AdminUsecase) RefreshTokenRenewal(ctx context.Context, payload mo
 		respErr = errors.New("refresh token reuse detected. for security reasons, you have been logged out. please sign in again.")
 		usecase.Log.Warn(respErr.Error())
 		errorMap["refresh_token"] = respErr.Error()
-		return model.TokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
-	tokenResponse := usecase.generateTokenResponse(ctx, tx, userID)
+	tokenResponse = usecase.generateTokens(ctx, tx, userID)
 
 	return tokenResponse, nil
 }
 
-func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload model.RenewalTokenRequest, errorMap map[string]string) (model.AccessTokenResponse, map[string]string) {
+func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload model.RenewalTokenRequest, errorMap map[string]string) (model.Token, map[string]string) {
 	var err error
 	var respErr error
+	tokenResponse := model.Token{}
 
 	if payload.Refresh_token == "" {
 		errorMap["refresh_token"] = "refresh_token is required to not be empty"
-		return model.AccessTokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	} else if len(payload.Refresh_token) != 164 {
 		errorMap["refresh_token"] = "refresh_token must be 164 characters"
-		return model.AccessTokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	tx, err := usecase.DB.Begin(ctx)
@@ -339,17 +341,17 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 			err = errors.New("token is malformed")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.AccessTokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		} else if err.Error() == "token has invalid claims: token is expired" {
 			err = errors.New("token is expired")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.AccessTokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		} else {
 			err = errors.New("token is invalid")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.AccessTokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		}
 	}
 
@@ -363,7 +365,7 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 			err = errors.New("token is invalid")
 			usecase.Log.Debug(err.Error())
 			errorMap["refresh_token"] = err.Error()
-			return model.AccessTokenResponse{}, errorMap
+			return tokenResponse, errorMap
 		}
 	}
 
@@ -371,7 +373,7 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 	if err != nil {
 		usecase.Log.Warn(err.Error())
 		errorMap["user"] = err.Error()
-		return model.AccessTokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	hashedRequestRefreshTokenHex := helper.GenerateSHA256Hash(payload.Refresh_token)
@@ -380,7 +382,7 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 	if err != nil {
 		usecase.Log.Warn(err.Error())
 		errorMap["refresh_token"] = err.Error()
-		return model.AccessTokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	if hashedRequestRefreshTokenHex != hashedDBRefreshTokenHex {
@@ -388,17 +390,18 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 		respErr = errors.New("refresh token reuse detected. for security reasons, you have been logged out. please sign in again.")
 		usecase.Log.Warn(respErr.Error())
 		errorMap["refresh_token"] = respErr.Error()
-		return model.AccessTokenResponse{}, errorMap
+		return tokenResponse, errorMap
 	}
 
 	secretKeyAccess := usecase.Config.String("SECRET_KEY_ACCESS_TOKEN")
 	secretKeyAccessByte := []byte(secretKeyAccess)
 
 	now := time.Now()
+	accessExpirationTime := now.Add(5 * time.Minute)
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  userID,
-		"exp": now.Add(5 * time.Minute).Unix(),
+		"exp": accessExpirationTime.Unix(),
 	})
 
 	accessTokenString, err := accessToken.SignedString(secretKeyAccessByte)
@@ -406,10 +409,9 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 		usecase.Log.Panic("failed to sign access token", zap.Error(err))
 	}
 
-	accessTokenResponse := model.AccessTokenResponse{
+	accessTokenResponse := model.Token{
 		Access_token:            accessTokenString,
-		Access_token_expires_in: int((5 * time.Minute).Seconds()),
-		Token_type:              "bearer",
+		Access_token_expires_in: accessExpirationTime,
 	}
 
 	return accessTokenResponse, nil

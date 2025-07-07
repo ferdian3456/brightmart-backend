@@ -18,24 +18,26 @@ func (c *RouteConfig) SetupRoute() {
 	// admin and superadmin
 	c.Router.POST("/api/web/admin/login", c.AdminController.WebLoginAdmin)
 	c.Router.POST("/api/web/admin/users", c.AuthMiddleware.WebSuperAdminProtectedMiddleware(c.AdminController.WebCreateAdmin))
+	c.Router.POST("/api/web/admin/refresh", c.AdminController.RefreshRenewal)
+	c.Router.POST("/api/web/admin/access", c.AdminController.AccessRenewal)
 
 	// banner
-	c.Router.GET("/api/web/admin/banners", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetAllBanner))
-	c.Router.GET("/api/web/admin/banners/:bannerID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetBannerByID))
+	c.Router.GET("/api/web/admin/banners", c.AdminController.WebGetAllBanner)
+	c.Router.GET("/api/web/admin/banners/:bannerID", c.AdminController.WebGetBannerByID)
 	c.Router.POST("/api/web/admin/banners", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebCreateBanner))
 	c.Router.PATCH("/api/web/admin/banners/:bannerID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebUpdateBannerByID))
 	c.Router.DELETE("/api/web/admin/banners/:bannerID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebDeleteBannerByID))
 
 	// category
-	c.Router.GET("/api/web/admin/categories", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetAllCategory))
-	c.Router.GET("/api/web/admin/categories/:categoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetCategoryByID))
+	c.Router.GET("/api/web/admin/categories", c.AdminController.WebGetAllCategory)
+	c.Router.GET("/api/web/admin/categories/:categoryID", c.AdminController.WebGetCategoryByID)
 	c.Router.POST("/api/web/admin/categories", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebCreateCategory))
 	c.Router.PATCH("/api/web/admin/categories/:categoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebUpdateCategoryByID))
 	c.Router.DELETE("/api/web/admin/categories/:categoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebDeleteCategoryByID))
 
 	// sub category
-	c.Router.GET("/api/web/admin/sub-categories", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetAllSubCategory))
-	c.Router.GET("/api/web/admin/sub-categories/:subCategoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebGetSubCategoryByID))
+	c.Router.GET("/api/web/admin/sub-categories", c.AdminController.WebGetAllSubCategory)
+	c.Router.GET("/api/web/admin/sub-categories/:subCategoryID", c.AdminController.WebGetSubCategoryByID)
 	c.Router.POST("/api/web/admin/sub-categories", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebCreateSubCategory))
 	c.Router.PATCH("/api/web/admin/sub-categories/:subCategoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebUpdateSubCategoryByID))
 	c.Router.DELETE("/api/web/admin/sub-categories/:subCategoryID", c.AuthMiddleware.WebAdminProtectedMiddleware(c.AdminController.WebDeleteSubCategoryByID))
