@@ -9,7 +9,7 @@ type Admin struct {
 	Password  string
 	Role      string
 	CreatedBy string
-	IsActive  string
+	IsActive  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

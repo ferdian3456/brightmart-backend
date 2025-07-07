@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/knadh/koanf/v2"
@@ -415,4 +416,84 @@ func (usecase *AdminUsecase) AccessTokenRenewal(ctx context.Context, payload mod
 	}
 
 	return accessTokenResponse, nil
+}
+
+func (usecase *AdminUsecase) CreateAdmin(ctx context.Context, superadminID string, payload model.AdminCreateRequest, errorMap map[string]string) map[string]string {
+	var respErr error
+
+	if payload.Username == "" {
+		errorMap["username"] = "username is required to not be empty"
+		return errorMap
+	} else if len(payload.Username) < 4 {
+		errorMap["username"] = "username must be at least 4 characters"
+		return errorMap
+	} else if len(payload.Username) > 22 {
+		errorMap["username"] = "username must be at most 22 characters"
+		return errorMap
+	}
+
+	if payload.Email == "" {
+		errorMap["email"] = "email is required to not be empty"
+		return errorMap
+	} else if len(payload.Email) < 16 {
+		errorMap["email"] = "email must be at least 16 characters"
+		return errorMap
+	} else if len(payload.Email) > 80 {
+		errorMap["email"] = "email must be at most 80 characters"
+		return errorMap
+	}
+
+	if payload.Password == "" {
+		errorMap["password"] = "password is required to not be empty"
+		return errorMap
+	} else if len(payload.Password) < 5 {
+		errorMap["password"] = "password must be at least 5 characters"
+		return errorMap
+	} else if len(payload.Password) > 20 {
+		errorMap["password"] = "password must be at most 20 characters"
+		return errorMap
+	}
+
+	// start transaction
+	tx, err := usecase.DB.Begin(ctx)
+	if err != nil {
+		respErr = errors.New("failed to start transaction")
+		usecase.Log.Panic(respErr.Error(), zap.Error(err))
+	}
+
+	defer helper.CommitOrRollback(ctx, tx, usecase.Log)
+
+	now := time.Now()
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
+	if err != nil {
+		respErr = errors.New("error generating password hash")
+		usecase.Log.Panic(respErr.Error(), zap.Error(err))
+	}
+
+	err = usecase.AdminRepository.CheckUsernameUnique(ctx, tx, payload.Username)
+	if err != nil {
+		errorMap["username"] = err.Error()
+		return errorMap
+	}
+
+	err = usecase.AdminRepository.CheckEmailUnique(ctx, tx, payload.Email)
+	if err != nil {
+		errorMap["email"] = err.Error()
+		return errorMap
+	}
+
+	admin := model.Admin{
+		Id:        uuid.New().String(),
+		Username:  payload.Username,
+		Email:     payload.Email,
+		Password:  string(hashedPassword),
+		CreatedBy: superadminID,
+		Role:      "admin",
+		IsActive:  true,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	usecase.AdminRepository.CreateAdmin(ctx, tx, admin)
+	return nil
 }

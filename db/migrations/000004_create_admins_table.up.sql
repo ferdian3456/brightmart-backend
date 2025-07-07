@@ -3,7 +3,7 @@ CREATE TABLE admins IF NOT EXISTS(
     username varchar(100) UNIQUE NOT NULL
     email varchar(80) UNIQUE NOT NULL,
     password varchar(60) NOT NULL,
-    role varchar(20) NOT NULL CHECK (role IN ('admin','superadmin')),
+    role varchar(20) NOT NULL CHECK (role IN ('admin','superadmin')) DEFAULT 'admin',
     created_by char(36),
     is_active boolean NOT NULL,
     created_at TIMESTAMP NOT NULL,

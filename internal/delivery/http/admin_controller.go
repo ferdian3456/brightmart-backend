@@ -4,7 +4,6 @@ import (
 	"brightmart-backend/internal/helper"
 	"brightmart-backend/internal/model"
 	"brightmart-backend/internal/usecase"
-	"context"
 	"github.com/julienschmidt/httprouter"
 	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"

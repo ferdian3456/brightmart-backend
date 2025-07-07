@@ -119,3 +119,42 @@ func (repository *AdminRepository) CheckSuperAdminExistence(ctx context.Context,
 
 	return nil
 }
+
+func (repository *AdminRepository) CheckUsernameUnique(ctx context.Context, tx pgx.Tx, username string) error {
+	query := "SELECT username FROM admins WHERE username=$1 LIMIT 1"
+
+	var existingUsername string
+	err := tx.QueryRow(ctx, query, username).Scan(&existingUsername)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return errors.New("username already exist")
+}
+
+func (repository *AdminRepository) CheckEmailUnique(ctx context.Context, tx pgx.Tx, email string) error {
+	query := "SELECT email FROM admins WHERE email=$1 LIMIT 1"
+
+	var existingEmail string
+	err := tx.QueryRow(ctx, query, email).Scan(&existingEmail)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		repository.Log.Panic("failed to query database", zap.Error(err))
+	}
+
+	return errors.New("email already exist")
+}
+
+func (repository *AdminRepository) CreateAdmin(ctx context.Context, tx pgx.Tx, admin model.Admin) {
+	query := "INSERT INTO admins (id,username,email,password,created_by,role,is_active,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)"
+	_, err := tx.Exec(ctx, query, admin.Id, admin.Username, admin.Email, admin.Password, admin.CreatedBy, admin.Role, admin.IsActive, admin.CreatedAt, admin.UpdatedAt)
+	if err != nil {
+		repository.Log.Panic("failed to query into database", zap.Error(err))
+	}
+}
