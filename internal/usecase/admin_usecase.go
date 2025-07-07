@@ -497,3 +497,52 @@ func (usecase *AdminUsecase) CreateAdmin(ctx context.Context, superadminID strin
 	usecase.AdminRepository.CreateAdmin(ctx, tx, admin)
 	return nil
 }
+
+func (usecase *AdminUsecase) GetAllBanner(ctx context.Context, errorMap map[string]string) (model.BannerResponse, map[string]string) {
+	var err error
+	banners := model.BannerResponse{}
+
+	banners, err = usecase.AdminRepository.GetAllBanner(ctx)
+	if err != nil {
+		errorMap["banner"] = err.Error()
+		usecase.Log.Debug(err.Error())
+		return banners, errorMap
+	}
+
+	return banners, nil
+}
+
+func (usecase *AdminUsecase) GetBannerByID(ctx context.Context, bannerID string, errorMap map[string]string) (model.BannerResponse, map[string]string) {
+	var err error
+	banners := model.BannerResponse{}
+
+	banners, err = usecase.AdminRepository.GetBannerByID(ctx, bannerID)
+	if err != nil {
+		errorMap["banner"] = err.Error()
+		usecase.Log.Debug(err.Error())
+		return banners, errorMap
+	}
+
+	return banners, nil
+}
+
+func (usecase *AdminUsecase) CreateBanner(ctx context.Context, adminUUID string, payload model.BannerCreateRequest, map[string]string{}) map[string]string {
+	return nil
+}
+
+func (usecase *AdminUsecase) UpdateBannerByID(ctx context.Context, adminUUID string, bannerID string, payload model.BannerUpdateRequest) map[string]string {
+	return nil
+}
+
+func (usecase *AdminUsecase) DeleteBannerByID(ctx context.Context, bannerID string, errorMap map[string]string) map[string]string {
+	err := usecase.AdminRepository.FindBannerByID(ctx, bannerID)
+	if err != nil {
+		errorMap["banner"] = err.Error()
+		usecase.Log.Debug(err.Error())
+		return errorMap
+	}
+
+	usecase.AdminRepository.DeleteBannerByID(ctx, bannerID)
+
+	return nil
+}
