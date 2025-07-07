@@ -9,18 +9,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/julienschmidt/httprouter"
 	"github.com/knadh/koanf/v2"
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
 
 type ServerConfig struct {
-	Router  *httprouter.Router
-	DB      *pgxpool.Pool
-	DBCache *redis.ClusterClient
-	Log     *zap.Logger
-	OAuth2  *oauth2.Config
-	Config  *koanf.Koanf
+	Router   *httprouter.Router
+	DB       *pgxpool.Pool
+	DBCache  *redis.ClusterClient
+	ObjectDB *minio.Client
+	Log      *zap.Logger
+	OAuth2   *oauth2.Config
+	Config   *koanf.Koanf
 }
 
 func Server(config *ServerConfig) {
