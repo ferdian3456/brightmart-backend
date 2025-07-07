@@ -250,7 +250,7 @@ func (controller AdminController) WebDeleteBannerByID(writer http.ResponseWriter
 
 	err := controller.AdminUsecase.DeleteBannerByID(ctx, adminUUID, bannerID, errorMap)
 	if err != nil {
-		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		helper.WriteErrorResponse(writer, StatusNotFound, err)
 		return
 	}
 
@@ -258,41 +258,164 @@ func (controller AdminController) WebDeleteBannerByID(writer http.ResponseWriter
 }
 
 func (controller AdminController) WebGetAllCategory(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	response, err := controller.AdminUsecase.GetAllCategory(ctx, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebGetCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	categoryID := params.ByName("categoryID")
+
+	response, err := controller.AdminUsecase.GetCategoryByID(ctx, categoryID, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebCreateCategory(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	payload := model.CategoryCreateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.CreateCategory(ctx, adminUUID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebUpdateCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+	categoryID := params.ByName("categoryID")
+
+	payload := model.CategoryUpdateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.UpdateCategory(ctx, adminUUID, categoryID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebDeleteCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	categoryID := params.ByName("categoryID")
+
+	err := controller.AdminUsecase.DeleteCategoryByID(ctx, adminUUID, categoryID, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebGetAllSubCategory(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	response, err := controller.AdminUsecase.GetAllCategory(ctx, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebGetSubCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	subCategoryID := params.ByName("subCategoryID")
+
+	response, err := controller.AdminUsecase.GetAllSubCategoryByID(ctx, subCategoryID, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebCreateSubCategory(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	payload := model.SubCategoryCreateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	response, err := controller.AdminUsecase.GetAllSubCategoryByID(ctx, adminUUID, subCategoryID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponse(writer, response)
 }
 
 func (controller AdminController) WebUpdateSubCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	payload := model.SubCategoryUpdateRequest{}
+	helper.ReadFromRequestBody(request, payload)
+
+	err := controller.AdminUsecase.UpdateSubCategoryByID(ctx, adminUUID, subCategoryID, payload, errorMap)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusBadRequest, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
 
 func (controller AdminController) WebDeleteSubCategoryByID(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	ctx := request.Context()
+	errorMap := map[string]string{}
 
+	adminUUID, _ := ctx.Value("admin_uuid").(string)
+
+	subCategoryID := params.ByName("subCategoryID")
+
+	err := controller.AdminUsecase.DeleteSubCategoryByID(ctx, adminUUID, subCategoryID)
+	if err != nil {
+		helper.WriteErrorResponse(writer, http.StatusNotFound, err)
+		return
+	}
+
+	helper.WriteSuccessResponseNoData(writer)
 }
